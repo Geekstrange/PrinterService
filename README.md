@@ -1,5 +1,8 @@
 # PrintServer
 
+> [!TIP]
+> favicon 来自 [呃大土豆](https://www.iconfont.cn/user/detail?spm=a313x.search_index.0.d214f71f6.443d3a81mZD7ai&uid=4442218&nid=aTjgpQDgAkh3)。这位设计师还创作了许多精致的图标作品，欢迎点击主页逛逛，发现更多优质素材～
+
 > 一个简单易用的内网打印解决方案，让您可以通过浏览器打印文档，解决一些电脑实在连不上打印机的问题
 
 <img width="834" height="784" alt="image" src="https://github.com/Geekstrange/PrinterService/blob/master/imgs/1.png" />

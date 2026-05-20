@@ -1072,12 +1072,12 @@ def build_menu(icon):
 
 def setup_tray():
     image = create_simple_printer_icon()
-    icon = pystray.Icon('print_server', image, '内网打印服务(静默版)')
+    icon = pystray.Icon('print_server', image, 'PrintServer')
     icon.menu = build_menu(icon)
     icon.run()
 
 if __name__ == '__main__':
-    print("正在启动内网打印服务...")
+    print("正在启动PrintServer...")
     print(f"本机IP: {get_local_ip()}")
     print(f"服务端口: 5000")
     print(f"转换库状态:")
@@ -1089,7 +1089,7 @@ if __name__ == '__main__':
         print("\n⚠️  警告：PyMuPDF未安装，静默打印功能不可用！")
         print("请运行以下命令安装：pip install PyMuPDF")
     else:
-        print("\n✅ 静默打印功能已就绪，使用Windows底层API，完全无界面弹出")
+        print("\n✅ PrintServer已就绪，使用Windows底层API，完全无界面弹出")
     
     print("支持拖拽上传，服务启动中...")
     
