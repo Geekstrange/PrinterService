@@ -1,8 +1,8 @@
-# 内网打印服务
+# PrintServer
 
 > 一个简单易用的内网打印解决方案，让您可以通过浏览器打印文档，解决一些电脑实在连不上打印机的问题
 
-<img width="834" height="784" alt="image" src="https://github.com/user-attachments/assets/d3702780-8377-4ded-8138-211254614f60" />
+<img width="834" height="784" alt="image" src="https://github.com/Geekstrange/PrinterService/blob/master/imgs/1.png" />
 
 原项目地址：https://github.com/a937750307/lan-printing
 
@@ -61,7 +61,7 @@
    - 或点击上传按钮选择文件
    - 系统会自动转换为PDF格式
 
-<img width="833" height="821" alt="image" src="https://github.com/user-attachments/assets/c257b36a-a9a0-4a48-8d13-f3e7d4ce7434" />
+<img width="833" height="821" alt="image" src="https://github.com/Geekstrange/PrinterService/blob/master/imgs/1.png" />
 
 
 3. **文件管理**
@@ -69,7 +69,7 @@
    - 查看源文件
    - 删除不需要的文件
 
-<img width="454" height="111" alt="image" src="https://github.com/user-attachments/assets/af23f735-d15c-4f6d-ac31-af4cc4daef4c" />
+<img width="454" height="111" alt="image" src="https://github.com/Geekstrange/PrinterService/blob/master/imgs/2.png" />
 
 
 ## 📋 支持的文件格式
