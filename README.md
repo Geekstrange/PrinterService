@@ -1,8 +1,5 @@
 # PrintServer
 
-> [!TIP]
-> favicon 来自 [呃大土豆](https://www.iconfont.cn/user/detail?spm=a313x.search_index.0.d214f71f6.443d3a81mZD7ai&uid=4442218&nid=aTjgpQDgAkh3)。这位设计师还创作了许多精致的图标作品，欢迎点击主页逛逛，发现更多优质素材～
-
 > 一个简单易用的内网打印解决方案，让您可以通过浏览器打印文档，解决一些电脑实在连不上打印机的问题
 
 <img width="834" height="784" alt="image" src="https://github.com/Geekstrange/PrinterService/blob/master/imgs/1.png" />
@@ -31,6 +28,7 @@
    - 内网网络连接正常
    - Office 文档转换（任选其一）：
      - Microsoft Office（推荐，支持打印区域设置）
+     - [WPS Office](https://www.wps.cn/)（国产，支持打印区域设置）
      - [LibreOffice](https://www.libreoffice.org/download/)（免费，支持工作表选择）
    - Python 依赖：`pip install flask pystray pywin32 Pillow reportlab PyMuPDF comtypes openpyxl xlrd`
 
@@ -87,13 +85,13 @@
 
 ### 转换引擎对比
 
-| 功能 | Microsoft Office | LibreOffice |
-|------|:---:|:---:|
-| Word 转 PDF | ✓ | ✓ |
-| Excel 转 PDF | ✓ | ✓ |
-| PPT 转 PDF | ✓ | ✓ |
-| Excel 工作表选择 | ✓ | ✓ |
-| Excel 打印区域 (A1:F20) | ✓ | ✗ |
+| 功能 | MS Office | WPS Office | LibreOffice |
+|------|:---:|:---:|:---:|
+| Word 转 PDF | ✓ | ✓ | ✓ |
+| Excel 转 PDF | ✓ | ✓ | ✓ |
+| PPT 转 PDF | ✓ | ✓ | ✓ |
+| Excel 工作表选择 | ✓ | ✓ | ✓ |
+| Excel 打印区域 (A1:F20) | ✓ | ✓ | ✗ |
 
 ## 🔄 更新日志
 
@@ -106,7 +104,7 @@
   - 自动读取工作表列表供选择
   - 支持打印区域坐标输入（如 `A1:F20`）
   - **表格可视选区**：弹窗内渲染 Excel 数据表格，鼠标拖拽即可选取打印区域，支持 Shift 扩展选区 / Ctrl 补选单元格
-- **LibreOffice 备选转换引擎**：无需 MS Office 即可完成 Word/Excel/PPT 转 PDF（自动检测安装路径）
+- **多引擎转换支持**：自动检测并使用 MS Office → WPS Office → LibreOffice 三级降级链，任一可用即可完成转换
 
 #### 🔧 功能优化
 - **文件页数自动检测**：打印弹窗中显示 PDF 页数，可视化页码按钮勾选

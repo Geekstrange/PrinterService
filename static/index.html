@@ -249,6 +249,9 @@
 				<span class="{% if office_available %}status-good{% else %}status-missing{% endif %}">
 					Office COM组件: {{ '✓ 可用' if office_available else '✗ 未安装Office' }}
 				</span><br>
+				<span class="{% if wps_available %}status-good{% else %}status-missing{% endif %}">
+					WPS Office: {{ '✓ 可用' if wps_available else '✗ 未安装（可安装作为备选）' }}
+				</span><br>
 				<span class="{% if libreoffice_available %}status-good{% else %}status-missing{% endif %}">
 					LibreOffice: {{ '✓ 可用' if libreoffice_available else '✗ 未安装（可安装作为备选）' }}
 				</span>

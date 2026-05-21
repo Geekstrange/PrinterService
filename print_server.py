@@ -35,6 +35,34 @@ try:
 except ImportError:
     OFFICE_AVAILABLE = False
 
+def _check_wps():
+    """Check if WPS Office COM is registered without launching any process."""
+    if not OFFICE_AVAILABLE:
+        return False
+    try:
+        import winreg
+        # Check personal edition ProgIDs
+        for progid in ['WPS.Application', 'ET.Application', 'WPP.Application']:
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, progid + '\\CLSID')
+                winreg.CloseKey(key)
+                return True  # At least one WPS component found
+            except Exception:
+                continue
+        # Check enterprise edition ProgIDs
+        for progid in ['KWPS.Application', 'KET.Application', 'KWPP.Application']:
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, progid + '\\CLSID')
+                winreg.CloseKey(key)
+                return True
+            except Exception:
+                continue
+        return False
+    except Exception:
+        return False
+
+WPS_AVAILABLE = _check_wps()
+
 def find_libreoffice():
     """Locate LibreOffice soffice.exe. Returns path or None."""
     candidates = [
@@ -578,6 +606,235 @@ def convert_office_to_pdf_com_silent(office_path, output_path, sheet_name=None, 
         except:
             pass
 
+# ---------- WPS Office COM conversion ----------
+_WPS_WORD_CLSIDS = ['WPS.Application', 'KWPS.Application']
+_WPS_EXCEL_CLSIDS = ['ET.Application', 'KET.Application', 'Excel.Application']
+_WPS_PPT_CLSIDS = ['WPP.Application', 'KWPP.Application']
+
+
+def _try_create_wps_com(progids):
+    """Try creating a COM object from a list of ProgIDs. Returns the object or None."""
+    for pid in progids:
+        try:
+            return comtypes.client.CreateObject(pid)
+        except Exception:
+            continue
+    return None
+
+
+def convert_office_to_pdf_wps(office_path, output_path, sheet_name=None, print_area=None):
+    """Use WPS Office COM automation to convert Office docs to PDF."""
+    try:
+        pythoncom.CoInitialize()
+
+        ext = office_path.lower().split('.')[-1]
+        abs_office_path = os.path.abspath(office_path)
+        abs_output_path = os.path.abspath(output_path)
+
+        output_dir = os.path.dirname(abs_output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        if not os.path.exists(abs_office_path):
+            raise Exception(f"输入文件不存在: {abs_office_path}")
+
+        if ext in ['doc', 'docx']:
+            word = _try_create_wps_com(_WPS_WORD_CLSIDS)
+            if not word:
+                return False
+            word.Visible = False
+            try:
+                word.DisplayAlerts = False
+            except Exception:
+                pass
+
+            try:
+                try:
+                    doc = word.Documents.Open(abs_office_path, ReadOnly=True, Visible=False)
+                except Exception:
+                    doc = word.Documents.Open(abs_office_path, ReadOnly=True)
+
+                success = False
+                try:
+                    doc.ExportAsFixedFormat(abs_output_path, 17)
+                    success = True
+                except Exception:
+                    try:
+                        doc.SaveAs(abs_output_path, 17)
+                        success = True
+                    except Exception:
+                        try:
+                            doc.SaveAs(abs_output_path)
+                            success = True
+                        except Exception:
+                            pass
+
+                try:
+                    doc.Close(SaveChanges=False)
+                except Exception:
+                    pass
+
+            finally:
+                try:
+                    word.Quit()
+                except Exception:
+                    pass
+
+        elif ext in ['xls', 'xlsx']:
+            excel = _try_create_wps_com(_WPS_EXCEL_CLSIDS)
+            if not excel:
+                print("WPS: 无法创建 Excel COM 对象")
+                return False
+            excel.Visible = False
+            try:
+                excel.DisplayAlerts = False
+            except Exception:
+                pass
+            try:
+                excel.ScreenUpdating = False
+            except Exception:
+                pass
+
+            try:
+                try:
+                    wb = excel.Workbooks.Open(abs_office_path, ReadOnly=True)
+                except Exception:
+                    try:
+                        wb = excel.Workbooks.Open(abs_office_path)
+                    except Exception:
+                        wb = excel.Workbooks.Open(abs_office_path, False)
+
+                if sheet_name:
+                    try:
+                        ws = wb.Worksheets(sheet_name)
+                        ws.Activate()
+                    except Exception:
+                        try:
+                            ws = wb.Sheets(sheet_name)
+                            ws.Activate()
+                        except Exception:
+                            pass
+
+                if print_area:
+                    try:
+                        ws = wb.ActiveSheet
+                        ws.PageSetup.PrintArea = print_area
+                    except Exception:
+                        pass
+
+                success = False
+                # WPS ET supports ExportAsFixedFormat with Type=0 (PDF)
+                errors = []
+                try:
+                    wb.ExportAsFixedFormat(0, abs_output_path)
+                    success = True
+                except Exception as e1:
+                    errors.append(str(e1))
+                    try:
+                        ws = wb.ActiveSheet
+                        ws.ExportAsFixedFormat(0, abs_output_path)
+                        success = True
+                    except Exception as e2:
+                        errors.append(str(e2))
+                        # Some WPS versions use SaveAs with PDF format
+                        for fmt in [57, 0, 6]:
+                            try:
+                                wb.SaveAs(abs_output_path, fmt)
+                                success = True
+                                break
+                            except Exception:
+                                continue
+                        if not success:
+                            try:
+                                ws = wb.ActiveSheet
+                                ws.SaveAs(abs_output_path)
+                                success = True
+                            except Exception as e3:
+                                errors.append(str(e3))
+
+                if not success:
+                    print(f"WPS Excel 全部导出方式失败: {'; '.join(errors[:3])}")
+
+                try:
+                    wb.Close(SaveChanges=False)
+                except Exception:
+                    pass
+
+            finally:
+                try:
+                    excel.Quit()
+                except Exception:
+                    pass
+
+        elif ext in ['ppt', 'pptx']:
+            ppt = _try_create_wps_com(_WPS_PPT_CLSIDS)
+            if not ppt:
+                return False
+            try:
+                try:
+                    ppt.Visible = 0
+                except Exception:
+                    pass
+
+                try:
+                    try:
+                        presentation = ppt.Presentations.Open(abs_office_path)
+                    except Exception:
+                        presentation = ppt.Presentations.Open(abs_office_path, ReadOnly=True)
+
+                    success = False
+                    try:
+                        presentation.ExportAsFixedFormat(abs_output_path, 2)
+                        success = True
+                    except Exception:
+                        try:
+                            presentation.SaveAs(abs_output_path, 32)
+                            success = True
+                        except Exception:
+                            try:
+                                presentation.Export(abs_output_path, "PDF")
+                                success = True
+                            except Exception:
+                                try:
+                                    presentation.SaveAs(abs_output_path)
+                                    success = True
+                                except Exception:
+                                    pass
+
+                    try:
+                        presentation.Close()
+                    except Exception:
+                        pass
+
+                except Exception as file_error:
+                    print(f"WPS PowerPoint 文件处理失败: {file_error}")
+                    return False
+
+            finally:
+                try:
+                    if 'ppt' in locals():
+                        ppt.Quit()
+                except Exception:
+                    pass
+
+        else:
+            return False
+
+        if os.path.exists(abs_output_path) and os.path.getsize(abs_output_path) > 0:
+            return True
+        else:
+            return False
+
+    except Exception as e:
+        print(f"WPS COM 组件转换失败: {e}")
+        return False
+    finally:
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
+
+
 def sanitize_filename(filename):
     import re
     filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
@@ -689,22 +946,35 @@ def convert_to_pdf(file_path, output_dir, sheet_name=None, print_area=None):
             return pdf_path
     
     elif ext in ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']:
-        if OFFICE_AVAILABLE:
-            if convert_office_to_pdf_com_silent(file_path, pdf_path, sheet_name, print_area):
-                return pdf_path
-            else:
-                print(f"Office COM转换失败，尝试 LibreOffice: {filename}")
-                if convert_office_to_pdf_libreoffice(file_path, pdf_path, sheet_name):
-                    return pdf_path
-        elif LIBREOFFICE_AVAILABLE:
-            print(f"使用 LibreOffice 转换: {filename}")
-            if convert_office_to_pdf_libreoffice(file_path, pdf_path, sheet_name):
-                return pdf_path
-        else:
-            print("Office COM组件不可用，且未安装 LibreOffice")
+        # Chain: MS Office COM → WPS COM → LibreOffice
+        def _try_office_chain():
+            if OFFICE_AVAILABLE:
+                return convert_office_to_pdf_com_silent(file_path, pdf_path, sheet_name, print_area)
+            return None
+
+        def _try_wps_chain():
+            if WPS_AVAILABLE:
+                return convert_office_to_pdf_wps(file_path, pdf_path, sheet_name, print_area)
+            return None
+
+        def _try_libreoffice_chain():
+            if LIBREOFFICE_AVAILABLE:
+                return convert_office_to_pdf_libreoffice(file_path, pdf_path, sheet_name)
+            return None
+
+        for attempt, name in [(_try_office_chain, 'Office COM'),
+                               (_try_wps_chain, 'WPS'),
+                               (_try_libreoffice_chain, 'LibreOffice')]:
+            result = attempt()
+            if result:
+                return pdf_path  # Return the output path, not the boolean
+            if result is False:  # Tried and failed (not just unavailable)
+                print(f"{name} 转换失败，尝试下一个引擎: {filename}")
+
+        print("无可用的转换引擎 (Office COM/WPS/LibreOffice)")
 
     return None
-    
+
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -785,6 +1055,7 @@ def index():
                          files=files,
                          logs=logs,
                          office_available=OFFICE_AVAILABLE,
+                         wps_available=WPS_AVAILABLE,
                          libreoffice_available=LIBREOFFICE_AVAILABLE,
                          pymupdf_available=PYMUPDF_AVAILABLE)
 
@@ -1083,6 +1354,7 @@ if __name__ == '__main__':
     print(f"转换库状态:")
     print(f"  PyMuPDF: {'可用' if PYMUPDF_AVAILABLE else '未安装 - 静默打印功能不可用'}")
     print(f"  Office COM: {'可用' if OFFICE_AVAILABLE else '未安装Office'}")
+    print(f"  WPS Office: {'可用' if WPS_AVAILABLE else '未安装'}")
     print(f"  LibreOffice: {'可用' if LIBREOFFICE_AVAILABLE else '未安装'}")
     
     if not PYMUPDF_AVAILABLE:
